@@ -37,13 +37,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.avro.util.internal.JacksonUtils;
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.DoubleNode;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.DoubleNode;
 
 /** An abstract data type.
  * <p>A schema may be one of:
@@ -464,8 +465,10 @@ public abstract class Schema extends JsonProperties {
     private boolean defaultValueEquals(JsonNode thatDefaultValue) {
       if (defaultValue == null)
         return thatDefaultValue == null;
-      if (Double.isNaN(defaultValue.getDoubleValue()))
-        return Double.isNaN(thatDefaultValue.getDoubleValue());
+      if (thatDefaultValue == null)
+        return false;
+      if (Double.isNaN(defaultValue.doubleValue()))
+        return Double.isNaN(thatDefaultValue.doubleValue());
       return defaultValue.equals(thatDefaultValue);
     }
 
@@ -1029,7 +1032,7 @@ public abstract class Schema extends JsonProperties {
       try {
         validateNames.set(validate);
         VALIDATE_DEFAULTS.set(validateDefaults);
-        return Schema.parse(MAPPER.readTree(parser), names);
+        return Schema.parse((JsonNode)MAPPER.readTree(parser), names);
       } catch (JsonParseException e) {
         throw new SchemaParseException(e);
       } finally {
@@ -1226,7 +1229,7 @@ public abstract class Schema extends JsonProperties {
       throw new SchemaParseException("Cannot parse <null> schema");
     }
     if (schema.isTextual()) {                     // name
-      Schema result = names.get(schema.getTextValue());
+      Schema result = names.get(schema.textValue());
       if (result == null)
         throw new SchemaParseException("Undefined name: "+schema);
       return result;
@@ -1264,7 +1267,7 @@ public abstract class Schema extends JsonProperties {
           if (fieldTypeNode == null)
             throw new SchemaParseException("No field type: "+field);
           if (fieldTypeNode.isTextual()
-              && names.get(fieldTypeNode.getTextValue()) == null)
+              && names.get(fieldTypeNode.textValue()) == null)
             throw new SchemaParseException
               (fieldTypeNode+" is not a defined name."
                +" The type of the \""+fieldName+"\" field must be"
@@ -1273,17 +1276,17 @@ public abstract class Schema extends JsonProperties {
           Field.Order order = Field.Order.ASCENDING;
           JsonNode orderNode = field.get("order");
           if (orderNode != null)
-            order = Field.Order.valueOf(orderNode.getTextValue().toUpperCase(Locale.ENGLISH));
+            order = Field.Order.valueOf(orderNode.textValue().toUpperCase(Locale.ENGLISH));
           JsonNode defaultValue = field.get("default");
           if (defaultValue != null
               && (Type.FLOAT.equals(fieldSchema.getType())
                   || Type.DOUBLE.equals(fieldSchema.getType()))
               && defaultValue.isTextual())
             defaultValue =
-              new DoubleNode(Double.valueOf(defaultValue.getTextValue()));
+              new DoubleNode(Double.valueOf(defaultValue.textValue()));
           Field f = new Field(fieldName, fieldSchema,
                               fieldDoc, defaultValue, order);
-          Iterator<String> i = field.getFieldNames();
+          Iterator<String> i = field.fieldNames();
           while (i.hasNext()) {                       // add field props
             String prop = i.next();
             if (!FIELD_RESERVED.contains(prop))
@@ -1299,7 +1302,8 @@ public abstract class Schema extends JsonProperties {
           throw new SchemaParseException("Enum has no symbols: "+schema);
         LockableArrayList<String> symbols = new LockableArrayList<String>(symbolsNode.size());
         for (JsonNode n : symbolsNode)
-          symbols.add(n.getTextValue());
+          symbols.add(n.textValue());
+        JsonNode enumDefault = schema.get("default");
         result = new EnumSchema(name, doc, symbols);
         if (name != null) names.add(result);
       } else if (type.equals("array")) {          // array
@@ -1316,11 +1320,11 @@ public abstract class Schema extends JsonProperties {
         JsonNode sizeNode = schema.get("size");
         if (sizeNode == null || !sizeNode.isInt())
           throw new SchemaParseException("Invalid or no size: "+schema);
-        result = new FixedSchema(name, doc, sizeNode.getIntValue());
+        result = new FixedSchema(name, doc, sizeNode.intValue());
         if (name != null) names.add(result);
       } else
         throw new SchemaParseException("Type not supported: "+type);
-      Iterator<String> i = schema.getFieldNames();
+      Iterator<String> i = schema.fieldNames();
       while (i.hasNext()) {                       // add properties
         String prop = i.next();
         if (!SCHEMA_RESERVED.contains(prop))      // ignore reserved
@@ -1357,7 +1361,7 @@ public abstract class Schema extends JsonProperties {
     for (JsonNode aliasNode : aliasesNode) {
       if (!aliasNode.isTextual())
         throw new SchemaParseException("alias not a string: "+aliasNode);
-      aliases.add(aliasNode.getTextValue());
+      aliases.add(aliasNode.textValue());
     }
     return aliases;
   }
@@ -1381,7 +1385,7 @@ public abstract class Schema extends JsonProperties {
   /** Extracts text value associated to key from the container JsonNode. */
   private static String getOptionalText(JsonNode container, String key) {
     JsonNode jsonNode = container.get(key);
-    return jsonNode != null ? jsonNode.getTextValue() : null;
+    return jsonNode != null ? jsonNode.textValue() : null;
   }
 
   /**
