@@ -17,18 +17,20 @@
  */
 package org.apache.avro.compiler.specific;
 
+import static org.apache.avro.specific.SpecificData.RESERVED_WORDS;
+
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,21 +38,19 @@ import java.util.Set;
 
 import org.apache.avro.Conversion;
 import org.apache.avro.Conversions;
+import org.apache.avro.JsonProperties;
 import org.apache.avro.LogicalTypes;
-import org.apache.avro.data.TimeConversions.DateConversion;
-import org.apache.avro.data.TimeConversions.TimeConversion;
-import org.apache.avro.data.TimeConversions.TimestampConversion;
-import org.apache.avro.specific.SpecificData;
-import com.fasterxml.jackson.databind.JsonNode;
-
 import org.apache.avro.Protocol;
 import org.apache.avro.Protocol.Message;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.SchemaNormalization;
-import org.apache.avro.JsonProperties;
+import org.apache.avro.data.TimeConversions.DateConversion;
+import org.apache.avro.data.TimeConversions.TimeConversion;
+import org.apache.avro.data.TimeConversions.TimestampConversion;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.StringType;
+import org.apache.avro.specific.SpecificData;
 import org.apache.velocity.Template;
 import org.apache.velocity.VelocityContext;
 import org.apache.velocity.app.VelocityEngine;
@@ -59,7 +59,7 @@ import org.apache.velocity.runtime.log.LogChute;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.avro.specific.SpecificData.RESERVED_WORDS;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Generate specific Java interfaces and classes for protocols and schemas.
@@ -617,7 +617,7 @@ public class SpecificCompiler {
       return "java.util.List<" + javaType(schema.getElementType()) + ">";
     case MAP:
       return "java.util.Map<"
-        + getStringType(schema.getJsonProp(SpecificData.KEY_CLASS_PROP))+","
+        + getStringType(schema)+","
         + javaType(schema.getValueType()) + ">";
     case UNION:
       List<Schema> types = schema.getTypes(); // elide unions with null
@@ -625,7 +625,7 @@ public class SpecificCompiler {
         return javaType(types.get(types.get(0).equals(NULL_SCHEMA) ? 1 : 0));
       return "java.lang.Object";
     case STRING:
-      return getStringType(schema.getJsonProp(SpecificData.CLASS_PROP));
+      return getStringType(schema);
     case BYTES:   return "java.nio.ByteBuffer";
     case INT:     return "java.lang.Integer";
     case LONG:    return "java.lang.Long";
